@@ -1,0 +1,108 @@
+name: Package Plugin Release
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 3.3.0)'
+        required: true
+        type: string
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          extensions: mbstring, intl, curl, zip
+          coverage: none
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update plugin version
+        run: |
+          # Update version in main plugin file
+          sed -i "s/Version: .*/Version: ${{ steps.version.outputs.version }}/" remove-inactive-users.php
+          sed -i "s/define( 'JMCK_REMOVE_INACTIVE_USERS_VERSION', '.*' );/define( 'JMCK_REMOVE_INACTIVE_USERS_VERSION', '${{ steps.version.outputs.version }}' );/" remove-inactive-users.php
+
+      - name: Create plugin package
+        run: |
+          # Create temporary directory for the plugin
+          mkdir -p /tmp/remove-inactive-users
+          
+          # Copy plugin files (excluding development files)
+          rsync -av --exclude='.git*' \
+                   --exclude='node_modules' \
+                   --exclude='*.log' \
+                   --exclude='.DS_Store' \
+                   --exclude='Thumbs.db' \
+                   --exclude='phpcs.xml*' \
+                   --exclude='phpunit.xml*' \
+                   --exclude='tests/' \
+                   --exclude='.github/' \
+                   --exclude='composer.json' \
+                   --exclude='composer.lock' \
+                   --exclude='package*.json' \
+                   --exclude='webpack*' \
+                   --exclude='gulpfile*' \
+                   --exclude='Gruntfile*' \
+                   --exclude='*.md' \
+                   ./ /tmp/remove-inactive-users/
+          
+          # Create ZIP file
+          cd /tmp
+          zip -r remove-inactive-users-${{ steps.version.outputs.version }}.zip remove-inactive-users/
+
+          # Move ZIP to workspace
+          mv remove-inactive-users-${{ steps.version.outputs.version }}.zip $GITHUB_WORKSPACE/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: remove-inactive-users-${{ steps.version.outputs.version }}
+          path: remove-inactive-users-${{ steps.version.outputs.version }}.zip
+
+      - name: Create Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: remove-inactive-users-${{ steps.version.outputs.version }}.zip
+          name: Remove Inactive Users v${{ steps.version.outputs.version }}
+          body: |
+            ## Changes in v${{ steps.version.outputs.version }}
+            
+            - Bug fixes and improvements
+            
+            ## Installation
+
+            1. Download the `remove-inactive-users-${{ steps.version.outputs.version }}.zip` file
+            2. Upload to WordPress via Plugins > Add New > Upload Plugin
+            3. Activate the plugin
+            
+            ## Requirements
+            
+            - WordPress 6.0+
+            - PHP 8.0+
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
