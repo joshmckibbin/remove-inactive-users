@@ -1,0 +1,3 @@
+# Deny public access to this directory
+Order allow,deny
+Deny from all
