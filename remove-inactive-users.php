@@ -21,7 +21,8 @@ define( 'JMCK_REMOVE_INACTIVE_USERS_URL', plugin_dir_url( __FILE__ ) );
 
 // Setting Overrides.
 define( 'JMCK_REMOVE_INACTIVE_USERS_DAYS', 499 );
-define( 'JMCK_REMOVE_INACTIVE_USERS_ROLES', array( 'subscriber' ) );
+// define( 'JMCK_REMOVE_INACTIVE_USERS_ROLES', array( 'subscriber' ) );
+define( 'JMCK_REMOVE_INACTIVE_USERS_CRON', true );
 
 // Load the class library.
 spl_autoload_register(
