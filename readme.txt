@@ -4,8 +4,8 @@ Tags: users, inactive, cleanup, admin
 Requires at least: 6.0
 Tested up to: 6.8
 Stable tag: 3.0.0
-License: GPLv2 or later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
+License: MIT
+License URI: https://opensource.org/licenses/MIT
 
 A simple plugin to remove inactive users from your WordPress site.
 
@@ -19,14 +19,14 @@ Remove Inactive Users is a simple plugin that helps administrators identify and 
 
 == Frequently Asked Questions ==
 = How do I set the inactivity period? =
-Go to the plugin settings page under 'Users' and specify the number of days.
+Go to the plugin settings page under 'Settings' and specify the number of days.
 
-= Will this delete users automatically? =
-No, you must manually confirm user removal.
+= Will this remove users automatically? =
+Only if you have enabled the 'Auto Remove' option in the settings. If enabled, it will remove users automatically at regular intervals. Otherwise, you will need to manually remove users by submitting the form on the plugin's admin page.
 
 == Screenshots ==
-1. Plugin settings page.
-2. List of inactive users.
+1. Plugin User Options page.
+2. Plugin Settings page.
 
 == Changelog ==
 = 3.0.0 =
