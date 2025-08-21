@@ -5,7 +5,7 @@
  * @package remove-inactive-users
  */
 
-namespace JMck_Remove_Inactive_Users;
+namespace JM_Remove_Inactive_Users;
 
 // Exit if accessed directly.
 defined( 'ABSPATH' ) || exit;

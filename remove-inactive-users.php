@@ -15,14 +15,19 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants.
-define( 'JMCK_REMOVE_INACTIVE_USERS_VERSION', '3.0.0' );
-define( 'JMCK_REMOVE_INACTIVE_USERS_PATH', plugin_dir_path( __FILE__ ) );
-define( 'JMCK_REMOVE_INACTIVE_USERS_URL', plugin_dir_url( __FILE__ ) );
+define( 'JM_REMOVE_INACTIVE_USERS_VERSION', '3.0.0' );
+define( 'JM_REMOVE_INACTIVE_USERS_PATH', plugin_dir_path( __FILE__ ) );
+define( 'JM_REMOVE_INACTIVE_USERS_URL', plugin_dir_url( __FILE__ ) );
 
-// Setting Overrides.
-define( 'JMCK_REMOVE_INACTIVE_USERS_DAYS', 499 );
-// define( 'JMCK_REMOVE_INACTIVE_USERS_ROLES', array( 'subscriber' ) );
-define( 'JMCK_REMOVE_INACTIVE_USERS_CRON', true );
+// Option Overrides.
+define(
+	'JM_REMOVE_INACTIVE_USERS_OPTIONS',
+	array(
+		'inactive_period' => 497,
+		//'inactive_roles'  => array( 'subscriber' ),
+		'auto_remove'     => false,
+	)
+);
 
 // Load the class library.
 spl_autoload_register(
@@ -34,7 +39,7 @@ spl_autoload_register(
 		$class_path     = implode( DIRECTORY_SEPARATOR, array_slice( $class_filename, 0, -1 ) );
 		$class_filename = 'class-' . end( $class_filename ) . '.php';
 
-		$file = JMCK_REMOVE_INACTIVE_USERS_PATH . 'includes' . DIRECTORY_SEPARATOR . $class_path . DIRECTORY_SEPARATOR . $class_filename;
+		$file = JM_REMOVE_INACTIVE_USERS_PATH . 'includes' . DIRECTORY_SEPARATOR . $class_path . DIRECTORY_SEPARATOR . $class_filename;
 
 		if ( file_exists( $file ) ) {
 			require $file;
@@ -43,7 +48,7 @@ spl_autoload_register(
 );
 
 // Activate the plugin.
-register_activation_hook( __FILE__, array( 'JMck_Remove_Inactive_Users\Activator', 'activate' ) );
+register_activation_hook( __FILE__, array( 'JM_Remove_Inactive_Users\Activator', 'activate' ) );
 
 // Load the main plugin class.
-new JMck_Remove_Inactive_Users\Main();
+new JM_Remove_Inactive_Users\Main();
