@@ -19,16 +19,6 @@ define( 'JM_REMOVE_INACTIVE_USERS_VERSION', '3.0.0' );
 define( 'JM_REMOVE_INACTIVE_USERS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'JM_REMOVE_INACTIVE_USERS_URL', plugin_dir_url( __FILE__ ) );
 
-// Option Overrides.
-define(
-	'JM_REMOVE_INACTIVE_USERS_OPTIONS',
-	array(
-		'inactive_period' => 497,
-		//'inactive_roles'  => array( 'subscriber' ),
-		'auto_remove'     => false,
-	)
-);
-
 // Load the class library.
 spl_autoload_register(
 	function ( $class_name ) {

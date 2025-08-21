@@ -42,7 +42,7 @@ class Main {
 	 *
 	 * @var array<int>
 	 */
-	private array $inactive = array();
+	protected array $inactive = array();
 
 
 	/**
@@ -61,8 +61,9 @@ class Main {
 		add_action( 'init', array( $this, 'set_inactive_users' ) );
 
 		add_action( 'admin_menu', array( $this, 'users_menu' ) );
+
 		add_action( 'admin_menu', array( $this, 'options_menu' ) );
-		add_action( 'admin_post_remove_inactive_users', array( $this, 'handle_post' ), 5, 0 );
+		add_action( 'admin_init', array( $this, 'register_settings' ) );
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 	}
@@ -109,7 +110,14 @@ class Main {
 			}
 		}
 
-		// Additional sanitization for inactive roles.
+		// If boolean keys are missing, set them to false.
+		foreach ( $bool_options as $key ) {
+			if ( ! isset( $sanitized[ $key ] ) ) {
+				$sanitized[ $key ] = false;
+			}
+		}
+
+		// Additional sanitization.
 		if ( isset( $sanitized['inactive_roles'] ) ) {
 			// Make sure the roles actually exist and are not 'administrator'.
 			foreach ( $sanitized['inactive_roles'] as $key => $role ) {
@@ -313,6 +321,18 @@ class Main {
 
 
 	/**
+	 * Register the settings
+	 */
+	public function register_settings() {
+		register_setting(
+			'remove-inactive-users-config',
+			'remove_inactive_users',
+			array( $this, 'settings_callback' )
+		);
+	}
+
+
+	/**
 	 * Add options page
 	 */
 	public function options_menu() {
@@ -320,7 +340,7 @@ class Main {
 			__( 'Remove Inactive Users Settings' ),
 			__( 'Remove Inactive Users' ),
 			'manage_options',
-			'remove-inactive-users',
+			'remove-inactive-users-config',
 			array( $this, 'options_page' )
 		);
 	}
@@ -333,38 +353,56 @@ class Main {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage options.' ) );
 		}
+
+		if ( defined( 'JM_REMOVE_INACTIVE_USERS_OPTIONS' ) ) {
+			$override = self::sanitize_options( JM_REMOVE_INACTIVE_USERS_OPTIONS );
+		}
 		?>
 		<div id="remove-inactive-users-options" class="wrap">
 			<h1><?php esc_html_e( 'Remove Inactive Users Options' ); ?></h1>
+			<?php
+			if ( ! empty( $override ) ) {
+				echo '<p class="notice notice-large notice-warning">' . esc_html__( 'Some options have been overridden by the plugin constants.', 'jm-remove-inactive-users' ) . '</p>';
+			}
+			?>
 			<form method="post" action="options.php">
-				<?php settings_fields( 'remove-inactive-users' ); ?>
+				<?php settings_fields( 'remove-inactive-users-config' ); ?>
 				<table class="form-table" role="presentation">
 					<tr>
 						<th scope="row"><label for="remove-inactive-users--inactive_roles"><?php esc_html_e( 'Inactive Roles' ); ?></label></th>
 						<td>
-							<select id="remove-inactive-users--inactive_roles" name="remove_inactive_users[inactive_roles]" multiple>
+							<select id="remove-inactive-users--inactive_roles" name="remove_inactive_users[inactive_roles][]" multiple
+							<?php echo isset( $override['inactive_roles'] ) ? 'disabled' : ''; ?>>
 								<?php
 								$roles = get_editable_roles();
 								foreach ( $roles as $role => $details ) {
-									$selected = in_array( $role, (array) $this->options['inactive_roles'], true );
-									echo '<option value="' . esc_attr( $role ) . '" ' . selected( $selected, true, false ) . '>' . esc_html( $details['name'] ) . '</option>';
+									if ( 'administrator' !== $role ) {
+										$selected = in_array( $role, (array) $this->options['inactive_roles'], true );
+										echo '<option value="' . esc_attr( $role ) . '" ' . selected( $selected, true, false ) . '>' . esc_html( $details['name'] ) . '</option>';
+									}
 								}
 								?>
 							</select>
-							<p><?php esc_html_e( 'Select all roles that should be checked for inactivity.' ); ?></p>
+							<p><?php esc_html_e( 'Select all roles that should be checked for inactivity. Administrators cannot be removed.' ); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Inactive Period' ); ?></th>
 						<td>
-							<input type="number" id="remove-inactive-users--inactive_period" name="remove_inactive_users[inactive_period]" value="<?php echo esc_attr( $this->options['inactive_period'] ); ?>" class="small-text" />
+							<input type="number" id="remove-inactive-users--inactive_period" name="remove_inactive_users[inactive_period]" value="<?php echo esc_attr( $this->options['inactive_period'] ); ?>" class="small-text"
+							<?php echo isset( $override['inactive_period'] ) ? 'disabled' : ''; ?>/>
 							<label for="remove-inactive-users--inactive_period"><?php esc_html_e( 'Days' ); ?></label>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><?php esc_html_e( 'Auto Remove' ); ?></th>
 						<td>
-							<input type="checkbox" id="remove-inactive-users--auto_remove" name="remove_inactive_users[auto_remove]" value="1" <?php checked( $this->options['auto_remove'] ); ?> />
+							<input type="checkbox" id="remove-inactive-users--auto_remove" name="remove_inactive_users[auto_remove]" value="1"
+							<?php
+							checked( $this->options['auto_remove'] );
+							echo isset( $override['inactive_period'] ) ? ' disabled' : '';
+							?>
+							/>
 							<label for="remove-inactive-users--auto_remove"><?php esc_html_e( 'Enable daily automatic removal of inactive users.' ); ?></label>
 						</td>
 					</tr>
@@ -377,16 +415,16 @@ class Main {
 
 
 	/**
-	 * Handle POST requests for the settings page
+	 * Settings callback handler
 	 */
-	public function handle_post() {
+	public function settings_callback() {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage options.' ) );
 		}
 
 		// Verify the nonce.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Nonce sanitization unnecessary
-		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'jm-remove-inactive-users' ) ) {
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'remove-inactive-users-config-options' ) ) {
 			wp_die( esc_html__( 'Invalid nonce specified.', 'jm-remove-inactive-users' ) );
 		}
 
@@ -395,13 +433,9 @@ class Main {
 			wp_die( esc_html__( 'No data received.', 'jm-remove-inactive-users' ) );
 		}
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization handled in sanitize_options().
-		$options = $this->sanitize_options( wp_unslash( $_POST['remove_inactive_users'] ) );
+		$this->options = self::sanitize_options( wp_unslash( $_POST['remove_inactive_users'] ) );
 
-		update_site_option( 'remove_inactive_users', $options );
-
-		// Redirect back to the settings page.
-		wp_safe_redirect( admin_url( 'options-general.php?page=remove-inactive-users' ) );
-		exit;
+		return $this->options;
 	}
 
 
