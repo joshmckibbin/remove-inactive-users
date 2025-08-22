@@ -65,11 +65,7 @@ class Main {
 
 		add_action( 'admin_menu', array( $this, 'users_menu' ) );
 
-		if ( ! is_multisite() ) {
-			add_action( 'admin_menu', array( $this, 'options_menu' ) );
-		} else {
-			add_action( 'network_admin_menu', array( $this, 'options_menu' ) );
-		}
+		add_action( 'admin_menu', array( $this, 'options_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
@@ -151,11 +147,11 @@ class Main {
 	 * @see https://developer.wordpress.org/reference/functions/add_site_option/
 	 */
 	private static function get_options() {
-		$options = get_site_option( 'remove_inactive_users', false );
+		$options = get_option( 'remove_inactive_users' );
 		if ( false === $options || empty( $options ) ) {
 			// The options don't exist in the DB. Add them with default values.
 			$options = self::DEFAULT_OPTS;
-			add_site_option( 'remove_inactive_users', $options );
+			add_option( 'remove_inactive_users', $options );
 		}
 
 		// If the constant is set, override any specified options.
@@ -376,14 +372,7 @@ class Main {
 	 * Add options page
 	 */
 	public function options_menu() {
-		if ( ! is_multisite() ) {
-			$parent_slug = 'options-general.php'; // Single site admin page.
-		} else {
-			$parent_slug = 'settings.php'; // Network admin page.
-		}
-
-		add_submenu_page(
-			$parent_slug,
+		add_options_page(
 			__( 'Remove Inactive Users Settings' ),
 			__( 'Remove Inactive Users' ),
 			'manage_options',
@@ -412,13 +401,8 @@ class Main {
 			if ( ! empty( $override ) ) {
 				echo '<p class="notice notice-large notice-warning">' . esc_html__( 'Some options have been overridden by the plugin constants.', 'jm-remove-inactive-users' ) . '</p>';
 			}
-			// Determine the POST action URL.
-			$post_url = add_query_arg( 'action', 'remove_inactive_users', admin_url( 'admin-post.php' ) );
-			if ( is_multisite() ) {
-				$post_url = add_query_arg( 'action', 'remove_inactive_users', network_admin_url( 'edit.php' ) );
-			}
 			?>
-			<form method="post" action="<?php echo esc_url( $post_url ); ?>">
+			<form method="post" action="options.php">
 				<?php settings_fields( 'remove-inactive-users-config' ); ?>
 				<table class="form-table" role="presentation">
 					<tr>
