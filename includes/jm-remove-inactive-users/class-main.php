@@ -65,7 +65,11 @@ class Main {
 
 		add_action( 'admin_menu', array( $this, 'users_menu' ) );
 
-		add_action( 'admin_menu', array( $this, 'options_menu' ) );
+		if ( ! is_multisite() ) {
+			add_action( 'admin_menu', array( $this, 'options_menu' ) );
+		} else {
+			add_action( 'network_admin_menu', array( $this, 'options_menu' ) );
+		}
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
 
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
