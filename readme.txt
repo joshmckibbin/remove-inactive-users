@@ -22,7 +22,7 @@ Remove Inactive Users is a simple plugin that helps administrators identify and 
 Go to the plugin settings page under 'Settings' and specify the number of days.
 
 = Will this remove users automatically? =
-Only if you have enabled the 'Auto Remove' option in the settings. If enabled, it will remove users automatically at regular intervals. Otherwise, you will need to manually remove users by submitting the form on the plugin's admin page.
+Only if you have enabled the 'Auto Remove' option in the settings. If enabled, it will remove users automatically at regular daily intervals. Otherwise, you will need to manually remove users by submitting the form on the plugin's admin page.
 
 == Screenshots ==
 1. Plugin User Options page.
@@ -31,7 +31,3 @@ Only if you have enabled the 'Auto Remove' option in the settings. If enabled, i
 == Changelog ==
 = 3.0.0 =
 * Initial public release.
-
-== Upgrade Notice ==
-= 3.0.0 =
-Initial public release.

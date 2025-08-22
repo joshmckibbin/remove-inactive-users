@@ -1,108 +1,134 @@
-name: Package Plugin Release
-
-permissions:
-  contents: write
+name: Create Release
 
 on:
   push:
     tags:
       - 'v*.*.*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., 3.3.0)'
-        required: true
-        type: string
 
 jobs:
-  package:
+  release:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          extensions: mbstring, intl, curl, zip
-          coverage: none
-
-      - name: Determine version
-        id: version
+      - name: Get Tag Version
+        id: get_version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Verify Version Consistency
+        run: |
+          PLUGIN_VERSION=$(grep "Version:" remove-inactive-users.php | sed 's/.*Version: *\([0-9.]*\).*/\1/')
+          CONSTANT_VERSION=$(grep "JM_REMOVE_INACTIVE_USERS_VERSION" remove-inactive-users.php | sed "s/.*'\([0-9.]*\)'.*/\1/")
+          README_VERSION=$(grep "Stable tag:" readme.txt | sed 's/.*Stable tag: *\([0-9.]*\).*/\1/')
+          
+          echo "Plugin file version: $PLUGIN_VERSION"
+          echo "Plugin constant version: $CONSTANT_VERSION"
+          echo "Readme stable tag: $README_VERSION"
+          echo "Git tag version: ${{ steps.get_version.outputs.version }}"
+
+          if [ "$PLUGIN_VERSION" != "${{ steps.get_version.outputs.version }}" ] || \
+            [ "$CONSTANT_VERSION" != "${{ steps.get_version.outputs.version }}" ] || \
+            [ "$README_VERSION" != "${{ steps.get_version.outputs.version }}" ]; then
+            echo "❌ Version mismatch detected!"
+            echo "Please ensure all versions match the git tag version: ${{ steps.get_version.outputs.version }}"
+            exit 1
           fi
+          echo "✅ All versions match!"
 
-      - name: Update plugin version
-        run: |
-          # Update version in main plugin file
-          sed -i "s/Version: .*/Version: ${{ steps.version.outputs.version }}/" remove-inactive-users.php
-          sed -i "s/define( 'JMCK_REMOVE_INACTIVE_USERS_VERSION', '.*' );/define( 'JMCK_REMOVE_INACTIVE_USERS_VERSION', '${{ steps.version.outputs.version }}' );/" remove-inactive-users.php
-
-      - name: Create plugin package
+      - name: Create Release Package
         run: |
           # Create temporary directory for the plugin
           mkdir -p /tmp/remove-inactive-users
           
           # Copy plugin files (excluding development files)
-          rsync -av --exclude='.git*' \
-                   --exclude='node_modules' \
-                   --exclude='*.log' \
-                   --exclude='.DS_Store' \
-                   --exclude='Thumbs.db' \
-                   --exclude='phpcs.xml*' \
-                   --exclude='phpunit.xml*' \
-                   --exclude='tests/' \
-                   --exclude='.github/' \
-                   --exclude='composer.json' \
-                   --exclude='composer.lock' \
-                   --exclude='package*.json' \
-                   --exclude='webpack*' \
-                   --exclude='gulpfile*' \
-                   --exclude='Gruntfile*' \
-                   --exclude='*.md' \
-                   ./ /tmp/remove-inactive-users/
+          rsync -av \
+            --exclude='.git*' \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='.vscode' \
+            --exclude='.editorconfig' \
+            --exclude='assets/' \
+            --exclude='*.md' \
+            ./ /tmp/remove-inactive-users/
           
           # Create ZIP file
           cd /tmp
-          zip -r remove-inactive-users-${{ steps.version.outputs.version }}.zip remove-inactive-users/
+          zip -r remove-inactive-users-${{ steps.get_version.outputs.version }}.zip remove-inactive-users/
 
           # Move ZIP to workspace
-          mv remove-inactive-users-${{ steps.version.outputs.version }}.zip $GITHUB_WORKSPACE/
+          mv remove-inactive-users-${{ steps.get_version.outputs.version }}.zip $GITHUB_WORKSPACE/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: remove-inactive-users-${{ steps.version.outputs.version }}
-          path: remove-inactive-users-${{ steps.version.outputs.version }}.zip
+      - name: Generate Changelog
+        id: build_changelog
+        run: |
+          # Extract changelog for current version from readme.txt
+          VERSION="${{ steps.get_version.outputs.version }}"
+          
+          # Find the changelog section and extract content for this version
+          awk "
+          /^== Changelog ==/ { in_changelog=1; next }
+          in_changelog && /^= $VERSION =/ { in_version=1; next }
+          in_changelog && in_version && /^= [0-9]/ && !/^= $VERSION =/ { exit }
+          in_changelog && in_version { print }
+          " readme.txt > CHANGELOG.md
+          
+          # If changelog is empty, create a basic one
+          if [ ! -s CHANGELOG.md ]; then
+            echo "Release $VERSION" > CHANGELOG.md
+            echo "" >> CHANGELOG.md
+            echo "See \`readme.txt\` for full changelog details." >> CHANGELOG.md
+          fi
+          
+          # Set output for use in release notes
+          {
+            echo 'changelog<<EOF'
+            cat CHANGELOG.md
+            echo EOF
+          } >> $GITHUB_OUTPUT
 
-      - name: Create Release
+      - name: Create GitHub Release
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v1
         with:
-          files: remove-inactive-users-${{ steps.version.outputs.version }}.zip
-          name: Remove Inactive Users v${{ steps.version.outputs.version }}
+          name: Remove Inactive Users v${{ steps.get_version.outputs.version }}
           body: |
-            ## Changes in v${{ steps.version.outputs.version }}
-            
-            - Bug fixes and improvements
-            
-            ## Installation
+            ## Changes in v${{ steps.get_version.outputs.version }}
 
-            1. Download the `remove-inactive-users-${{ steps.version.outputs.version }}.zip` file
+            ${{ steps.build_changelog.outputs.changelog }}
+            
+            ## Manual Installation
+
+            1. Download the `remove-inactive-users-${{ steps.get_version.outputs.version }}.zip` file
             2. Upload to WordPress via Plugins > Add New > Upload Plugin
             3. Activate the plugin
-            
+
+            ## WP-CLI Installation
+
+            ```bash
+            wp plugin install --activate https://github.com/joshmckibbin/remove-inactive-users/releases/download/v${{ steps.get_version.outputs.version }}/remove-inactive-users-${{ steps.get_version.outputs.version }}.zip
+            ```
+
+            ## Configuration and Usage
+
+            1. Go to Settings > Remove Inactive Users to configure the plugin settings.
+            2. Go to Users > Remove Inactive Users to run the plugin.
+
             ## Requirements
-            
-            - WordPress 6.0+
-            - PHP 8.0+
+
+            - WordPress 6.0 or higher
+            - PHP 8.0 or higher
+          files: remove-inactive-users-${{ steps.get_version.outputs.version }}.zip
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: remove-inactive-users-${{ steps.get_version.outputs.version }}
+          path: remove-inactive-users-${{ steps.get_version.outputs.version }}.zip
+          retention-days: 30
