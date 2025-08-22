@@ -21,7 +21,7 @@ class Cron {
 	public function __construct() {
 		add_action( 'jm_remove_inactive_users_auto_remove', array( $this, 'remove_users' ) );
 
-		$options = get_site_option( 'remove_inactive_users', false );
+		$options = get_option( 'remove_inactive_users' );
 		if ( $options && isset( $options['auto_remove'] ) && $options['auto_remove'] ) {
 			$this->activate();
 		} else {
