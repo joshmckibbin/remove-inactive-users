@@ -22,7 +22,7 @@ class Main {
 	 *
 	 * @var array<string, mixed>
 	 */
-	private const array DEFAULT_OPTS = array(
+	private const DEFAULT_OPTS = array(
 		'inactive_period' => 365,
 		'inactive_roles'  => array( 'subscriber' ),
 		'auto_remove'     => false,
