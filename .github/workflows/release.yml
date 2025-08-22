@@ -116,7 +116,7 @@ jobs:
             ## Configuration and Usage
 
             1. Go to Settings > Remove Inactive Users to configure the plugin settings.
-            2. Go to Users > Remove Inactive Users to run the plugin.
+            2. Go to Users > Manage Inactive Users to run the plugin.
 
             ## Requirements
 
