@@ -38,11 +38,11 @@ class Main {
 
 
 	/**
-	 * The inactive users array.
+	 * Array of inactive user IDs
 	 *
 	 * @var array<int>
 	 */
-	protected array $inactive = array();
+	public array $inactive = array();
 
 
 	/**
@@ -59,6 +59,9 @@ class Main {
 
 		// Retrieve the inactive users and store them in a class property.
 		add_action( 'init', array( $this, 'set_inactive_users' ) );
+
+		// Load the Cron class.
+		new Cron();
 
 		add_action( 'admin_menu', array( $this, 'users_menu' ) );
 
@@ -221,26 +224,35 @@ class Main {
 			return 0;
 		}
 
-		// Get the number of users to remove from the inactive users array.
-		$remove_count = count( $this->inactive );
+		// Make sure the User Admin API is loaded.
+		require_once ABSPATH . 'wp-admin/includes/user.php';
 
 		// Loop through the inactive users and delete them.
-		foreach ( $this->inactive as $removed_user ) {
-			if ( ! wp_delete_user( $removed_user ) ) {
-				$error_obj = new \WP_Error(
-					'remove-inactive-users',
-					// translators: %s is the user display name.
-					wp_sprintf( __( 'Error: unable to remove %s' ), get_the_author_meta( 'display_name', $removed_user ) )
-				);
-				return $error_obj;
+		$removed_user_count = 0;
+		foreach ( $this->inactive as $user_id ) {
+			if ( wp_delete_user( $user_id ) ) {
+				++$removed_user_count;
 			}
+		}
+
+		// Get the number of users to remove from the inactive users array.
+		$inactive_user_count = count( $this->inactive );
+
+		// If not all users were removed, return an error.
+		if ( ! isset( $removed_user_count ) || $removed_user_count < $inactive_user_count ) {
+			$error_obj = new \WP_Error(
+				'remove-inactive-users',
+				// translators: %d is the number of inactive users.
+				wp_sprintf( __( 'Error: unable to remove %d users' ), $inactive_user_count - $removed_user_count )
+			);
+			return $error_obj;
 		}
 
 		// Reset the inactive users array.
 		$this->inactive = array();
 
 		// Return the number of users removed.
-		return $remove_count;
+		return $removed_user_count;
 	}
 
 
@@ -251,12 +263,12 @@ class Main {
 	 */
 	public function users_menu() {
 		add_users_page(
-			__( 'Remove Inactive Users' ),
-			__( 'Remove Inactive Users' ),
+			__( 'Manage Inactive Users' ),
+			__( 'Inactive Users' ),
 			'remove_users',
 			'remove-inactive-users',
 			array( $this, 'users_admin_page' ),
-			2.5
+			1.5
 		);
 	}
 
@@ -273,16 +285,40 @@ class Main {
 		}
 		?>
 		<div id="remove-inactive-users" class="wrap">
-			<h1><?php esc_html_e( 'Remove Inactive Users' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Inactive Users' ); ?></h1>
+			<a class="page-title-action" href="<?php echo esc_url( admin_url( 'options-general.php?page=remove-inactive-users-config' ) ); ?>"><?php esc_html_e( 'Settings', 'remove-inactive-users' ); ?></a>
 			<?php
-			if ( count( $this->options['inactive_roles'] ) > 1 ) {
-				// translators: %l is the list of user roles, %d is the number of days.
-				$description = __( 'Remove users in the %l roles who have not logged in to the site in over %d days.' );
-			} else {
-				// translators: %l is the list of user roles, %d is the number of days.
-				$description = __( 'Remove users in the %l role who have not logged in to the site in over %d days.' );
+
+			if ( ! empty( $this->options['auto_remove'] ) ) {
+				$next_run    = wp_next_scheduled( 'jm_remove_inactive_users_auto_remove' );
+				$notice_type = 'info';
+				// translators: %l is the list of user roles, %s is the plural suffix.
+				$schedule_notice_msg = __( 'Automatic daily removal of all inactive users in the %l role%s is currently enabled.', 'remove-inactive-users' );
+
+				if ( $next_run ) {
+					$next_run_formatted = date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $next_run );
+
+					// translators: %s is the date and time of the next scheduled run.
+					$schedule_notice_msg .= '<br><strong>' . wp_sprintf( __( 'Scheduled for %s', 'remove-inactive-users' ), $next_run_formatted ) . '</strong>';
+				} else {
+					$notice_type = 'warning';
+				}
 			}
-			echo '<p>' . esc_html( wp_sprintf( $description, $this->options['inactive_roles'], $this->options['inactive_period'] ) ) . '</p>';
+
+			// translators: %1$l is the list of user roles, %2$s is the plural suffix, %3$d is the number of days.
+			$description = __( 'Remove users in the %1$l role%2$s who have not logged in to the site in over %3$d days.' );
+
+			$plural_suffix = '';
+			if ( count( $this->options['inactive_roles'] ) > 1 ) {
+				$plural_suffix = 's';
+			}
+
+			echo '<p>' . esc_html( wp_sprintf( $description, $this->options['inactive_roles'], $plural_suffix, $this->options['inactive_period'] ) ) . '</p>';
+
+			if ( isset( $schedule_notice_msg ) ) {
+				$schedule_notice = wp_sprintf( $schedule_notice_msg, $this->options['inactive_roles'], $plural_suffix );
+				echo '<p class="notice notice-large notice-' . esc_attr( $notice_type ) . '">' . wp_kses_post( $schedule_notice ) . '</p>';
+			}
 
 			echo '<hr class="wp-header-end">';
 
@@ -360,6 +396,7 @@ class Main {
 		?>
 		<div id="remove-inactive-users-options" class="wrap">
 			<h1><?php esc_html_e( 'Remove Inactive Users Options' ); ?></h1>
+			<p><?php esc_html_e( 'Settings for the Remove Inactive Users plugin.' ); ?></p>
 			<?php
 			if ( ! empty( $override ) ) {
 				echo '<p class="notice notice-large notice-warning">' . esc_html__( 'Some options have been overridden by the plugin constants.', 'jm-remove-inactive-users' ) . '</p>';
@@ -383,7 +420,7 @@ class Main {
 								}
 								?>
 							</select>
-							<p><?php esc_html_e( 'Select all roles that should be checked for inactivity. Administrators cannot be removed.' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Select all roles that should be checked for inactivity.' ); ?></p>
 						</td>
 					</tr>
 					<tr>
@@ -391,7 +428,7 @@ class Main {
 						<td>
 							<input type="number" id="remove-inactive-users--inactive_period" name="remove_inactive_users[inactive_period]" value="<?php echo esc_attr( $this->options['inactive_period'] ); ?>" class="small-text"
 							<?php echo isset( $override['inactive_period'] ) ? 'disabled' : ''; ?>/>
-							<label for="remove-inactive-users--inactive_period"><?php esc_html_e( 'Days' ); ?></label>
+							<label for="remove-inactive-users--inactive_period"><?php esc_html_e( 'Days since last login.' ); ?></label>
 						</td>
 					</tr>
 					<tr>
