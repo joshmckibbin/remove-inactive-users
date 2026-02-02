@@ -215,7 +215,7 @@ class Main {
 
 		// Verify the nonce.
 		// phpcs:ignore WordPress.Security -- Unslashing and sanitization unnecessary for nonce verification
-		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'jm-remove-inactive-users' ) ) {
+		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'remove-inactive-users' ) ) {
 			return;
 		}
 
@@ -341,7 +341,7 @@ class Main {
 				<form id="remove-inactive-users-form" method="post">
 					<?php
 					// Add a nonce field.
-					wp_nonce_field( 'jm-remove-inactive-users' );
+					wp_nonce_field( 'remove-inactive-users' );
 
 					// Add the submit button.
 					// translators: %$d is the number of inactive users.
@@ -399,7 +399,7 @@ class Main {
 			<p><?php esc_html_e( 'Settings for the Remove Inactive Users plugin.' ); ?></p>
 			<?php
 			if ( ! empty( $override ) ) {
-				echo '<p class="notice notice-large notice-warning">' . esc_html__( 'Some options have been overridden by the plugin constants.', 'jm-remove-inactive-users' ) . '</p>';
+				echo '<p class="notice notice-large notice-warning">' . esc_html__( 'Some options have been overridden by the plugin constants.', 'remove-inactive-users' ) . '</p>';
 			}
 			?>
 			<form method="post" action="options.php">
@@ -462,12 +462,12 @@ class Main {
 		// Verify the nonce.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Nonce sanitization unnecessary
 		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'remove-inactive-users-config-options' ) ) {
-			wp_die( esc_html__( 'Invalid nonce specified.', 'jm-remove-inactive-users' ) );
+			wp_die( esc_html__( 'Invalid nonce specified.', 'remove-inactive-users' ) );
 		}
 
 		// Process the form submission.
 		if ( ! isset( $_POST['remove_inactive_users'] ) ) {
-			wp_die( esc_html__( 'No data received.', 'jm-remove-inactive-users' ) );
+			wp_die( esc_html__( 'No data received.', 'remove-inactive-users' ) );
 		}
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization handled in sanitize_options().
 		$this->options = self::sanitize_options( wp_unslash( $_POST['remove_inactive_users'] ) );

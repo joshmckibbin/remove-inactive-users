@@ -31,10 +31,10 @@ class Last_Login {
 		// Update usermeta on login.
 		add_action( 'wp_login', array( $this, 'update_last_login' ), 12, 2 );
 
-		// Create a new column in the user list table and make it sortable.
-		add_filter( 'manage_users_columns', array( $this, 'add_last_login_column' ), 12, 3 );
-		add_action( 'manage_users_custom_column', array( $this, 'populate_last_login_column' ), 12, 3 );
-		add_filter( 'manage_users_sortable_columns', array( $this, 'sortable_last_login_column' ), 12, 3 );
+		// Create new columns for last login and registration date.
+		add_filter( 'manage_users_columns', array( $this, 'add_date_columns' ), 12, 3 );
+		add_action( 'manage_users_custom_column', array( $this, 'populate_date_columns' ), 12, 3 );
+		add_filter( 'manage_users_sortable_columns', array( $this, 'sortable_date_columns' ), 12, 3 );
 
 		// Hook for request.
 		add_filter( 'request', array( $this, 'orderby_last_login' ) );
@@ -56,6 +56,7 @@ class Last_Login {
 	public function register_last_login( $user_id ) {
 		update_user_meta( $user_id, 'wp_last_login', time() );
 	}
+
 
 	/**
 	 * Update the last login time when a user logs in.
@@ -79,8 +80,9 @@ class Last_Login {
 	 * @return array
 	 * @see add_filter()
 	 **/
-	public function add_last_login_column( $columns ) {
+	public function add_date_columns( $columns ) {
 		$columns['wp_last_login'] = __( 'Last Login', 'remove-inactive-users' );
+		$columns['registration_date'] = __( 'Registration Date', 'remove-inactive-users' );
 		return $columns;
 	}
 
@@ -96,25 +98,17 @@ class Last_Login {
 	 * @see get_user_meta()
 	 * @see DateTime()
 	 **/
-	public function populate_last_login_column( $value, $column_name, $user_id ) {
-		// If the column is not our custom column, return the default value.
-		if ( 'wp_last_login' !== $column_name ) {
-			return $value;
+	public function populate_date_columns( $value, $column_name, $user_id ) {
+		if ( 'registration_date' === $column_name ) {
+			$local_reg_date = wp_date( 'Y-m-d h:ia', strtotime( get_userdata( $user_id )->user_registered ) );
+			return $local_reg_date ?? '&ndash;';
 		}
 
-		// Set the initial value of the column to a dash.
-		$value = '&ndash;';
+		if ( 'wp_last_login' === $column_name ) {
+			$last_login = (int) get_user_meta( $user_id, 'wp_last_login', true );
+			if ( 0 === $last_login ) return '&ndash;';
 
-		// If the user has logged in, display the date.
-		$last_login = get_user_meta( $user_id, 'wp_last_login', true );
-		if ( $last_login ) {
-			// Convert the time to a human-readable format.
-			$date = new \DateTime();
-			$date->setTimezone( wp_timezone() );
-			$date->setTimestamp( $last_login );
-
-			// Set the value.
-			$value = $date->format( 'Y-m-d h:ia' );
+			return wp_date( 'Y-m-d h:ia', $last_login );
 		}
 
 		return $value;
@@ -129,8 +123,9 @@ class Last_Login {
 	 * @return array
 	 * @see add_filter()
 	 **/
-	public function sortable_last_login_column( $columns ) {
+	public function sortable_date_columns( $columns ) {
 		$columns['wp_last_login'] = 'wp_last_login';
+		$columns['registration_date'] = 'registration_date';
 		return $columns;
 	}
 
