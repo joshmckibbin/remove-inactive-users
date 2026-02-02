@@ -63,11 +63,17 @@ class Main {
 		// Load the Cron class.
 		new Cron();
 
-		add_action( 'admin_menu', array( $this, 'users_menu' ) );
+		if ( is_multisite() ) {
+			add_action( 'network_admin_menu', array( $this, 'users_menu' ) );
+			add_action( 'network_admin_menu', array( $this, 'options_menu' ) );
+			add_action( 'network_admin_edit_remove_inactive_users', array( $this, 'settings_callback' ), 5, 0 );
+		} else {
+			add_action( 'admin_menu', array( $this, 'users_menu' ) );
+			add_action( 'admin_menu', array( $this, 'options_menu' ) );
+			add_action( 'admin_post_remove_inactive_users', array( $this, 'settings_callback' ), 5, 0 );
+		}
 
-		add_action( 'admin_menu', array( $this, 'options_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
-
 		add_action( 'admin_enqueue_scripts', array( $this, 'scripts' ) );
 	}
 
@@ -230,8 +236,10 @@ class Main {
 		// Loop through the inactive users and delete them.
 		$removed_user_count = 0;
 		foreach ( $this->inactive as $user_id ) {
-			if ( wp_delete_user( $user_id ) ) {
-				++$removed_user_count;
+			if ( is_multisite() && 1 === count( get_blogs_of_user( $user_id ) ) ) {
+				$delete_user = wpmu_delete_user( $user_id );
+			} else {
+				$delete_user = wp_delete_user( $user_id );
 			}
 		}
 
@@ -361,7 +369,7 @@ class Main {
 	 */
 	public function register_settings() {
 		register_setting(
-			'remove-inactive-users-config',
+			'remove_inactive_users_config',
 			'remove_inactive_users',
 			array( $this, 'settings_callback' )
 		);
@@ -372,11 +380,12 @@ class Main {
 	 * Add options page
 	 */
 	public function options_menu() {
-		add_options_page(
+		add_submenu_page(
+			is_multisite() ? 'settings.php' : 'options-general.php',
 			__( 'Remove Inactive Users Settings', 'remove-inactive-users' ),
 			__( 'Remove Inactive Users', 'remove-inactive-users' ),
 			'manage_options',
-			'remove-inactive-users-config',
+			'remove-inactive-users',
 			array( $this, 'options_page' )
 		);
 	}
@@ -401,9 +410,17 @@ class Main {
 			if ( ! empty( $override ) ) {
 				echo '<p class="notice notice-large notice-warning">' . esc_html__( 'Some options have been overridden by the plugin constants.', 'remove-inactive-users' ) . '</p>';
 			}
+			// Determine the POST action URL.
+			$post_url = add_query_arg( 'action', 'remove_inactive_users', admin_url( 'admin-post.php' ) );
+			if ( is_multisite() ) {
+				$post_url = add_query_arg( 'action', 'remove_inactive_users', network_admin_url( 'edit.php' ) );
+			}
 			?>
-			<form method="post" action="options.php">
-				<?php settings_fields( 'remove-inactive-users-config' ); ?>
+			<form method="post" action="<?php echo esc_url( $post_url ); ?>">
+				<?php
+				//settings_fields( 'remove-inactive-users-config' );
+				wp_nonce_field( 'remove-inactive-users-' . JM_REMOVE_INACTIVE_USERS_VERSION, 'remove_inactive_users[_nonce]' );
+				?>
 				<table class="form-table" role="presentation">
 					<tr>
 						<th scope="row"><label for="remove-inactive-users--inactive_roles"><?php esc_html_e( 'Inactive Roles', 'remove-inactive-users' ); ?></label></th>
@@ -459,20 +476,36 @@ class Main {
 			wp_die( esc_html__( 'You do not have permission to manage options.', 'remove-inactive-users' ) );
 		}
 
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || 'POST' !== $_SERVER['REQUEST_METHOD'] || empty( $_POST['remove_inactive_users'] ) ) {
+			wp_die( 'Request method isn\'t POST or post data is empty!' );
+		}
+
 		// Verify the nonce.
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Nonce sanitization unnecessary
-		if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( $_POST['_wpnonce'], 'remove-inactive-users-config-options' ) ) {
+		if ( empty( $_POST['remove_inactive_users']['_nonce'] ) || ! wp_verify_nonce( $_POST['remove_inactive_users']['_nonce'], 'remove-inactive-users-' . JM_REMOVE_INACTIVE_USERS_VERSION ) ) {
 			wp_die( esc_html__( 'Invalid nonce specified.', 'remove-inactive-users' ) );
 		}
 
-		// Process the form submission.
-		if ( ! isset( $_POST['remove_inactive_users'] ) ) {
-			wp_die( esc_html__( 'No data received.', 'remove-inactive-users' ) );
-		}
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization handled in sanitize_options().
 		$this->options = self::sanitize_options( wp_unslash( $_POST['remove_inactive_users'] ) );
 
-		return $this->options;
+		update_option( 'remove_inactive_users', $this->options );
+
+		// Generate the return_to URL.
+		$return_to_page = 'options-general.php';
+		if ( is_multisite() ) {
+			$return_to_page = 'settings.php';
+		}
+		$return_to = add_query_arg(
+			array(
+				'updated' => 'true',
+				'page'    => 'remove-inactive-users',
+			),
+			network_admin_url( $return_to_page )
+		);
+
+		wp_safe_redirect( $return_to );
+		die;
 	}
 
 
