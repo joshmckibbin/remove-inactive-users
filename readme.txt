@@ -3,7 +3,7 @@ Contributors: Josh Mckibbin
 Tags: users, inactive, cleanup, admin
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.0.1
+Stable tag: 3.0.2
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -29,6 +29,11 @@ Only if you have enabled the 'Auto Remove' option in the settings. If enabled, i
 2. Plugin Settings page.
 
 == Changelog ==
+= 3.0.2 =
+* Changed date format in user columns to be consistent with core WordPress tables.
+* Changed name of 'Registration Date' user column to 'Registered'.
+* Fix: Sorting of Registered column.
+
 = 3.0.1 =
 * Added 'Registration Date' column to users table in admin area.
 

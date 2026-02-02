@@ -34,7 +34,8 @@ class Last_Login {
 		// Create new columns for last login and registration date.
 		add_filter( 'manage_users_columns', array( $this, 'add_date_columns' ), 12, 3 );
 		add_action( 'manage_users_custom_column', array( $this, 'populate_date_columns' ), 12, 3 );
-		add_filter( 'manage_users_sortable_columns', array( $this, 'sortable_date_columns' ), 12, 3 );
+		add_filter( 'manage_users_sortable_columns', array( $this, 'sortable_last_login_column' ), 12, 3 );
+		add_filter( 'manage_users_sortable_columns', array( $this, 'sortable_registration_date_column' ), 12, 3 );
 
 		// Hook for request.
 		add_filter( 'request', array( $this, 'orderby_last_login' ) );
@@ -82,7 +83,7 @@ class Last_Login {
 	 **/
 	public function add_date_columns( $columns ) {
 		$columns['wp_last_login'] = __( 'Last Login', 'remove-inactive-users' );
-		$columns['registration_date'] = __( 'Registration Date', 'remove-inactive-users' );
+		$columns['registration_date'] = __( 'Registered', 'remove-inactive-users' );
 		return $columns;
 	}
 
@@ -99,8 +100,9 @@ class Last_Login {
 	 * @see DateTime()
 	 **/
 	public function populate_date_columns( $value, $column_name, $user_id ) {
+		$date_format = 'Y/m/d \a\t h:i a';
 		if ( 'registration_date' === $column_name ) {
-			$local_reg_date = wp_date( 'Y-m-d h:ia', strtotime( get_userdata( $user_id )->user_registered ) );
+			$local_reg_date = wp_date( $date_format, strtotime( get_userdata( $user_id )->user_registered ) );
 			return $local_reg_date ?? '&ndash;';
 		}
 
@@ -108,7 +110,7 @@ class Last_Login {
 			$last_login = (int) get_user_meta( $user_id, 'wp_last_login', true );
 			if ( 0 === $last_login ) return '&ndash;';
 
-			return wp_date( 'Y-m-d h:ia', $last_login );
+			return wp_date( $date_format, $last_login );
 		}
 
 		return $value;
@@ -116,17 +118,28 @@ class Last_Login {
 
 
 	/**
-	 * Register the new column as sortable.
+	 * Register the wp_last_login column as sortable.
 	 *
 	 * @since  1.0
 	 * @param array $columns The columns on the manage users screen.
 	 * @return array
 	 * @see add_filter()
 	 **/
-	public function sortable_date_columns( $columns ) {
+	public function sortable_last_login_column( $columns ) {
 		$columns['wp_last_login'] = 'wp_last_login';
-		$columns['registration_date'] = 'registration_date';
 		return $columns;
+	}
+
+
+	/**
+	 * Register the registration date column as sortable.
+	 * 
+	 * @param array $columns The columns on the manage users screen.
+	 * @return array
+	 * @see add_filter()
+	 */
+	public function sortable_registration_date_column( $columns ) {
+		return wp_parse_args( array( 'registration_date' => 'registered' ), $columns );
 	}
 
 
