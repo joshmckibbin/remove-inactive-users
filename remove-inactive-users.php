@@ -7,7 +7,8 @@
  * Author URI: https://josh.mckibb.in
  * Requires at least: 6.0
  * Requires PHP: 8.0
- * License: GPL-2.0-or-later
+ * License: MIT
+ * License URI: https://opensource.org/licenses/MIT
  *
  * @package RemoveInactiveUsers
  */

@@ -55,7 +55,7 @@ class Cron {
 				$error_obj = new \WP_Error(
 					'remove-inactive-users',
 					// translators: %s is the user display name.
-					wp_sprintf( __( 'Error: unable to remove %s' ), get_the_author_meta( 'display_name', $user_id ) )
+					wp_sprintf( __( 'Error: unable to remove %s', 'remove-inactive-users' ), get_the_author_meta( 'display_name', $user_id ) )
 				);
 				return $error_obj;
 			}

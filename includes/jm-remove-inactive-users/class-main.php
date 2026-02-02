@@ -210,7 +210,7 @@ class Main {
 	private function remove_users() {
 		// Only proceed if user has the capability to remove users.
 		if ( ! current_user_can( 'remove_users' ) ) {
-			wp_die( esc_html__( 'You do not have permission to remove users.' ) );
+			wp_die( esc_html__( 'You do not have permission to remove users.', 'remove-inactive-users' ) );
 		}
 
 		// Verify the nonce.
@@ -243,7 +243,7 @@ class Main {
 			$error_obj = new \WP_Error(
 				'remove-inactive-users',
 				// translators: %d is the number of inactive users.
-				wp_sprintf( __( 'Error: unable to remove %d users' ), $inactive_user_count - $removed_user_count )
+				wp_sprintf( __( 'Error: unable to remove %d users', 'remove-inactive-users' ), $inactive_user_count - $removed_user_count )
 			);
 			return $error_obj;
 		}
@@ -263,8 +263,8 @@ class Main {
 	 */
 	public function users_menu() {
 		add_users_page(
-			__( 'Manage Inactive Users' ),
-			__( 'Inactive Users' ),
+			__( 'Manage Inactive Users', 'remove-inactive-users' ),
+			__( 'Inactive Users', 'remove-inactive-users' ),
 			'remove_users',
 			'remove-inactive-users',
 			array( $this, 'users_admin_page' ),
@@ -281,11 +281,11 @@ class Main {
 	 */
 	public function users_admin_page() {
 		if ( ! current_user_can( 'remove_users' ) ) {
-			wp_die( esc_html__( 'You do not have permission to remove users.' ) );
+			wp_die( esc_html__( 'You do not have permission to remove users.', 'remove-inactive-users' ) );
 		}
 		?>
 		<div id="remove-inactive-users" class="wrap">
-			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Inactive Users' ); ?></h1>
+			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Inactive Users', 'remove-inactive-users' ); ?></h1>
 			<a class="page-title-action" href="<?php echo esc_url( admin_url( 'options-general.php?page=remove-inactive-users-config' ) ); ?>"><?php esc_html_e( 'Settings', 'remove-inactive-users' ); ?></a>
 			<?php
 
@@ -306,7 +306,7 @@ class Main {
 			}
 
 			// translators: %1$l is the list of user roles, %2$s is the plural suffix, %3$d is the number of days.
-			$description = __( 'Remove users in the %1$l role%2$s who have not logged in to the site in over %3$d days.' );
+			$description = __( 'Remove users in the %1$l role%2$s who have not logged in to the site in over %3$d days.', 'remove-inactive-users' );
 
 			$plural_suffix = '';
 			if ( count( $this->options['inactive_roles'] ) > 1 ) {
@@ -327,14 +327,14 @@ class Main {
 			if ( $removed_users && ! is_wp_error( $removed_users ) ) {
 
 				// translators: %d is the number of removed users.
-				echo '<p class="notice notice-large notice-success">' . esc_html( wp_sprintf( __( '%d users have been removed.' ), $removed_users ) ) . '</p>';
+				echo '<p class="notice notice-large notice-success">' . esc_html( wp_sprintf( __( '%d users have been removed.', 'remove-inactive-users' ), $removed_users ) ) . '</p>';
 			}
 
 			// If there are inactive users, display the inactive user table and form.
 			if ( count( $this->inactive ) > 0 ) {
 
 				// translators: %d is the number of inactive users.
-				echo '<p>' . esc_html( wp_sprintf( __( 'There are currently %d inactive users' ), count( $this->inactive ) ) ) . ':</p>';
+				echo '<p>' . esc_html( wp_sprintf( __( 'There are currently %d inactive users', 'remove-inactive-users' ), count( $this->inactive ) ) ) . ':</p>';
 
 				$this->inactive_users_table();
 				?>
@@ -345,11 +345,11 @@ class Main {
 
 					// Add the submit button.
 					// translators: %$d is the number of inactive users.
-					submit_button( wp_sprintf( __( 'Remove %d users' ), count( $this->inactive ) ), 'button-primary', 'delete', true, array( 'id' => 'submit-btn' ) );
+					submit_button( wp_sprintf( __( 'Remove %d users', 'remove-inactive-users' ), count( $this->inactive ) ), 'button-primary', 'delete', true, array( 'id' => 'submit-btn' ) );
 					?>
 				</form>
 			<?php } else { ?>
-				<p><?php esc_html_e( 'There are currently 0 inactive users.' ); ?></p>
+				<p><?php esc_html_e( 'There are currently 0 inactive users.', 'remove-inactive-users' ); ?></p>
 			<?php } ?>
 		</div>
 		<?php
@@ -373,8 +373,8 @@ class Main {
 	 */
 	public function options_menu() {
 		add_options_page(
-			__( 'Remove Inactive Users Settings' ),
-			__( 'Remove Inactive Users' ),
+			__( 'Remove Inactive Users Settings', 'remove-inactive-users' ),
+			__( 'Remove Inactive Users', 'remove-inactive-users' ),
 			'manage_options',
 			'remove-inactive-users-config',
 			array( $this, 'options_page' )
@@ -387,7 +387,7 @@ class Main {
 	 */
 	public function options_page() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage options.' ) );
+			wp_die( esc_html__( 'You do not have permission to manage options.', 'remove-inactive-users' ) );
 		}
 
 		if ( defined( 'JM_REMOVE_INACTIVE_USERS_OPTIONS' ) ) {
@@ -395,8 +395,8 @@ class Main {
 		}
 		?>
 		<div id="remove-inactive-users-options" class="wrap">
-			<h1><?php esc_html_e( 'Remove Inactive Users Options' ); ?></h1>
-			<p><?php esc_html_e( 'Settings for the Remove Inactive Users plugin.' ); ?></p>
+			<h1><?php esc_html_e( 'Remove Inactive Users Options', 'remove-inactive-users' ); ?></h1>
+			<p><?php esc_html_e( 'Settings for the Remove Inactive Users plugin.', 'remove-inactive-users' ); ?></p>
 			<?php
 			if ( ! empty( $override ) ) {
 				echo '<p class="notice notice-large notice-warning">' . esc_html__( 'Some options have been overridden by the plugin constants.', 'remove-inactive-users' ) . '</p>';
@@ -406,7 +406,7 @@ class Main {
 				<?php settings_fields( 'remove-inactive-users-config' ); ?>
 				<table class="form-table" role="presentation">
 					<tr>
-						<th scope="row"><label for="remove-inactive-users--inactive_roles"><?php esc_html_e( 'Inactive Roles' ); ?></label></th>
+						<th scope="row"><label for="remove-inactive-users--inactive_roles"><?php esc_html_e( 'Inactive Roles', 'remove-inactive-users' ); ?></label></th>
 						<td>
 							<select id="remove-inactive-users--inactive_roles" name="remove_inactive_users[inactive_roles][]" multiple
 							<?php echo isset( $override['inactive_roles'] ) ? 'disabled' : ''; ?>>
@@ -420,19 +420,19 @@ class Main {
 								}
 								?>
 							</select>
-							<p class="description"><?php esc_html_e( 'Select all roles that should be checked for inactivity.' ); ?></p>
+							<p class="description"><?php esc_html_e( 'Select all roles that should be checked for inactivity.', 'remove-inactive-users' ); ?></p>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><?php esc_html_e( 'Inactive Period' ); ?></th>
+						<th scope="row"><?php esc_html_e( 'Inactive Period', 'remove-inactive-users' ); ?></th>
 						<td>
 							<input type="number" id="remove-inactive-users--inactive_period" name="remove_inactive_users[inactive_period]" value="<?php echo esc_attr( $this->options['inactive_period'] ); ?>" class="small-text"
 							<?php echo isset( $override['inactive_period'] ) ? 'disabled' : ''; ?>/>
-							<label for="remove-inactive-users--inactive_period"><?php esc_html_e( 'Days since last login.' ); ?></label>
+							<label for="remove-inactive-users--inactive_period"><?php esc_html_e( 'Days since last login.', 'remove-inactive-users' ); ?></label>
 						</td>
 					</tr>
 					<tr>
-						<th scope="row"><?php esc_html_e( 'Auto Remove' ); ?></th>
+						<th scope="row"><?php esc_html_e( 'Auto Remove', 'remove-inactive-users' ); ?></th>
 						<td>
 							<input type="checkbox" id="remove-inactive-users--auto_remove" name="remove_inactive_users[auto_remove]" value="1"
 							<?php
@@ -440,7 +440,7 @@ class Main {
 							echo isset( $override['inactive_period'] ) ? ' disabled' : '';
 							?>
 							/>
-							<label for="remove-inactive-users--auto_remove"><?php esc_html_e( 'Enable daily automatic removal of inactive users.' ); ?></label>
+							<label for="remove-inactive-users--auto_remove"><?php esc_html_e( 'Enable daily automatic removal of inactive users.', 'remove-inactive-users' ); ?></label>
 						</td>
 					</tr>
 				</table>
@@ -456,7 +456,7 @@ class Main {
 	 */
 	public function settings_callback() {
 		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_die( esc_html__( 'You do not have permission to manage options.' ) );
+			wp_die( esc_html__( 'You do not have permission to manage options.', 'remove-inactive-users' ) );
 		}
 
 		// Verify the nonce.
@@ -494,8 +494,8 @@ class Main {
 			<thead>
 				<tr>
 					<th>#</th>
-					<th><?php esc_html_e( 'Name' ); ?></th>
-					<th><?php esc_html_e( 'Last Login' ); ?></th>
+					<th><?php esc_html_e( 'Name', 'remove-inactive-users' ); ?></th>
+					<th><?php esc_html_e( 'Last Login', 'remove-inactive-users' ); ?></th>
 				</tr>
 			</thead>
 			<tbody>
