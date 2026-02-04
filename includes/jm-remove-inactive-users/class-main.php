@@ -554,11 +554,13 @@ class Main {
 	/**
 	 * Add scripts to header
 	 *
+	 * @see https://developer.wordpress.org/reference/functions/get_current_screen/
 	 * @see https://developer.wordpress.org/reference/functions/wp_enqueue_script/
 	 */
 	public function scripts() {
-		// Only add scripts to the management page.
-		if ( isset( $_GET['page'] ) && 'remove-inactive-users' === $_GET['page'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// Only add scripts to the Inactive Users management page.
+		$screen = get_current_screen();
+		if ( $screen && in_array( $screen->id, array( 'users_page_remove-inactive-users', 'users_page_remove-inactive-users-network', true ) ) ) {
 			wp_enqueue_script( 'remove-inactive-users', JM_REMOVE_INACTIVE_USERS_URL . 'admin/scripts.js', array(), JM_REMOVE_INACTIVE_USERS_VERSION, true );
 		}
 	}

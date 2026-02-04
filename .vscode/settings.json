@@ -1,0 +1,9 @@
+{
+	"phpCodeSniffer.standard": "Custom",
+	"phpCodeSniffer.standardCustom": "phpcs.xml",
+	"editor.formatOnSave": true,
+	"intelephense.stubs": [
+        "Core",
+        "wordpress"
+    ],
+}

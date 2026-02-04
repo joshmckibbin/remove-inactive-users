@@ -55,6 +55,7 @@ jobs:
             --exclude='.editorconfig' \
             --exclude='assets/' \
             --exclude='*.md' \
+            --exclude='phpcs.xml' \
             ./ /tmp/remove-inactive-users/
           
           # Create ZIP file
