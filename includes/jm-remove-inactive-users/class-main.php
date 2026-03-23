@@ -343,7 +343,7 @@ class Main {
 		?>
 		<div id="remove-inactive-users" class="wrap">
 			<h1 class="wp-heading-inline"><?php esc_html_e( 'Manage Inactive Users', 'remove-inactive-users' ); ?></h1>
-			<a class="page-title-action" href="<?php echo esc_url( admin_url( 'options-general.php?page=remove-inactive-users-config' ) ); ?>"><?php esc_html_e( 'Settings', 'remove-inactive-users' ); ?></a>
+			<a class="page-title-action" href="<?php echo esc_url( admin_url( 'options-general.php?page=remove-inactive-users' ) ); ?>"><?php esc_html_e( 'Settings', 'remove-inactive-users' ); ?></a>
 			<?php
 
 			if ( ! empty( $this->options['auto_remove'] ) ) {
@@ -481,7 +481,6 @@ class Main {
 			?>
 			<form method="post" action="<?php echo esc_url( $post_url ); ?>">
 				<?php
-				// settings_fields( 'remove-inactive-users-config' );
 				wp_nonce_field( 'remove-inactive-users-' . JM_REMOVE_INACTIVE_USERS_VERSION, 'remove_inactive_users[_nonce]' );
 				?>
 				<table class="form-table" role="presentation">
