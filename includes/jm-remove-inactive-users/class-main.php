@@ -101,7 +101,7 @@ class Main {
 	 *
 	 * @see https://developer.wordpress.org/reference/functions/sanitize_text_field/
 	 */
-	private static function sanitize_options( array $options ) {
+	public static function sanitize_options( array $options ) {
 		// Integer keys to look for.
 		$int_options = array( 'inactive_period' );
 
@@ -434,7 +434,7 @@ class Main {
 		register_setting(
 			'remove_inactive_users_config',
 			'remove_inactive_users',
-			array( $this, 'settings_callback' )
+			array( __CLASS__, 'sanitize_options' )
 		);
 	}
 
