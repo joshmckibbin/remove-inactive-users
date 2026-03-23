@@ -42,8 +42,14 @@ class Cron {
 		$main = new Main();
 		$main->set_inactive_users();
 
-		if ( empty( $main->inactive ) ) {
-			return; // No inactive users to remove.
+		// Also set roleless users if that option is enabled.
+		$options = get_option( 'remove_inactive_users' );
+		if ( ! empty( $options['remove_roleless'] ) ) {
+			$main->set_roleless_users();
+		}
+
+		if ( empty( $main->inactive ) && empty( $main->roleless ) ) {
+			return; // No users to remove.
 		}
 
 		// Load the User Admin API.
@@ -51,6 +57,18 @@ class Cron {
 
 		// Loop through the inactive users and delete them.
 		foreach ( $main->inactive as $user_id ) {
+			if ( ! wp_delete_user( $user_id ) ) {
+				$error_obj = new \WP_Error(
+					'remove-inactive-users',
+					// translators: %s is the user display name.
+					wp_sprintf( __( 'Error: unable to remove %s', 'remove-inactive-users' ), get_the_author_meta( 'display_name', $user_id ) )
+				);
+				return $error_obj;
+			}
+		}
+
+		// Loop through the roleless users and delete them.
+		foreach ( $main->roleless as $user_id ) {
 			if ( ! wp_delete_user( $user_id ) ) {
 				$error_obj = new \WP_Error(
 					'remove-inactive-users',

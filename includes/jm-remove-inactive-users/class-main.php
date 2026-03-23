@@ -26,6 +26,7 @@ class Main {
 		'inactive_period' => 365,
 		'inactive_roles'  => array( 'subscriber' ),
 		'auto_remove'     => false,
+		'remove_roleless' => false,
 	);
 
 
@@ -46,6 +47,14 @@ class Main {
 
 
 	/**
+	 * Array of roleless user IDs
+	 *
+	 * @var array<int>
+	 */
+	public array $roleless = array();
+
+
+	/**
 	 * Initialize the class
 	 *
 	 * Sets up the plugin by loading options and initializing necessary components.
@@ -59,6 +68,11 @@ class Main {
 
 		// Retrieve the inactive users and store them in a class property.
 		add_action( 'init', array( $this, 'set_inactive_users' ) );
+
+		// Retrieve roleless users if the option is enabled.
+		if ( ! empty( $this->options['remove_roleless'] ) ) {
+			add_action( 'init', array( $this, 'set_roleless_users' ) );
+		}
 
 		// Load the Cron class.
 		new Cron();
@@ -95,7 +109,7 @@ class Main {
 		$arr_options = array( 'inactive_roles' );
 
 		// Boolean keys to look for.
-		$bool_options = array( 'auto_remove' );
+		$bool_options = array( 'auto_remove', 'remove_roleless' );
 
 		// Create the sanitized array.
 		$sanitized = array();
@@ -205,6 +219,31 @@ class Main {
 
 
 	/**
+	 * Update the array of roleless user IDs ($this->roleless)
+	 *
+	 * Finds all users whose capabilities meta is an empty array (no role assigned).
+	 *
+	 * @return void
+	 */
+	public function set_roleless_users() {
+		global $wpdb;
+
+		$this->roleless = get_users(
+			array(
+				'fields'     => 'ID',
+				'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Necessary to identify users with no role.
+					array(
+						'key'     => $wpdb->prefix . 'capabilities',
+						'value'   => 'a:0:{}',
+						'compare' => '=',
+					),
+				),
+			)
+		);
+	}
+
+
+	/**
 	 * Delete users on form submission handler
 	 *
 	 * @return int|WP_Error The number of users deleted or an error object if the users could not be deleted
@@ -225,8 +264,8 @@ class Main {
 			return;
 		}
 
-		// If there are no inactive users, return early.
-		if ( empty( $this->inactive ) ) {
+		// If there are no users to remove, return early.
+		if ( empty( $this->inactive ) && empty( $this->roleless ) ) {
 			return 0;
 		}
 
@@ -243,6 +282,15 @@ class Main {
 			}
 		}
 
+		// Loop through the roleless users and delete them.
+		foreach ( $this->roleless as $user_id ) {
+			if ( is_multisite() && 1 === count( get_blogs_of_user( $user_id ) ) ) {
+				wpmu_delete_user( $user_id );
+			} else {
+				wp_delete_user( $user_id );
+			}
+		}
+
 		// Get the number of users to remove from the inactive users array.
 		$inactive_user_count = count( $this->inactive );
 
@@ -256,8 +304,9 @@ class Main {
 			return $error_obj;
 		}
 
-		// Reset the inactive users array.
+		// Reset the users arrays.
 		$this->inactive = array();
+		$this->roleless = array();
 
 		// Return the number of users removed.
 		return $removed_user_count;
@@ -323,6 +372,10 @@ class Main {
 
 			echo '<p>' . esc_html( wp_sprintf( $description, $this->options['inactive_roles'], $plural_suffix, $this->options['inactive_period'] ) ) . '</p>';
 
+			if ( ! empty( $this->options['remove_roleless'] ) ) {
+				echo '<p>' . esc_html__( 'Additionally, users with no assigned role will also be removed.', 'remove-inactive-users' ) . '</p>';
+			}
+
 			if ( isset( $schedule_notice_msg ) ) {
 				$schedule_notice = wp_sprintf( $schedule_notice_msg, $this->options['inactive_roles'], $plural_suffix );
 				echo '<p class="notice notice-large notice-' . esc_attr( $notice_type ) . '">' . wp_kses_post( $schedule_notice ) . '</p>';
@@ -338,13 +391,23 @@ class Main {
 				echo '<p class="notice notice-large notice-success">' . esc_html( wp_sprintf( __( '%d users have been removed.', 'remove-inactive-users' ), $removed_users ) ) . '</p>';
 			}
 
-			// If there are inactive users, display the inactive user table and form.
-			if ( count( $this->inactive ) > 0 ) {
+			// Calculate the total number of users to remove.
+			$total_removable = count( $this->inactive ) + ( ! empty( $this->options['remove_roleless'] ) ? count( $this->roleless ) : 0 );
 
-				// translators: %d is the number of inactive users.
-				echo '<p>' . esc_html( wp_sprintf( __( 'There are currently %d inactive users', 'remove-inactive-users' ), count( $this->inactive ) ) ) . ':</p>';
+			// If there are users to remove, display the user tables and form.
+			if ( $total_removable > 0 ) {
 
-				$this->inactive_users_table();
+				if ( count( $this->inactive ) > 0 ) {
+					// translators: %d is the number of inactive users.
+					echo '<p>' . esc_html( wp_sprintf( __( 'There are currently %d inactive users', 'remove-inactive-users' ), count( $this->inactive ) ) ) . ':</p>';
+					$this->inactive_users_table();
+				}
+
+				if ( ! empty( $this->options['remove_roleless'] ) && count( $this->roleless ) > 0 ) {
+					// translators: %d is the number of roleless users.
+					echo '<p>' . esc_html( wp_sprintf( __( 'There are currently %d users with no assigned role', 'remove-inactive-users' ), count( $this->roleless ) ) ) . ':</p>';
+					$this->roleless_users_table();
+				}
 				?>
 				<form id="remove-inactive-users-form" method="post">
 					<?php
@@ -352,12 +415,12 @@ class Main {
 					wp_nonce_field( 'remove-inactive-users' );
 
 					// Add the submit button.
-					// translators: %$d is the number of inactive users.
-					submit_button( wp_sprintf( __( 'Remove %d users', 'remove-inactive-users' ), count( $this->inactive ) ), 'button-primary', 'delete', true, array( 'id' => 'submit-btn' ) );
+					// translators: %d is the total number of users to remove.
+					submit_button( wp_sprintf( __( 'Remove %d users', 'remove-inactive-users' ), $total_removable ), 'button-primary', 'delete', true, array( 'id' => 'submit-btn' ) );
 					?>
 				</form>
 			<?php } else { ?>
-				<p><?php esc_html_e( 'There are currently 0 inactive users.', 'remove-inactive-users' ); ?></p>
+				<p><?php esc_html_e( 'There are currently 0 users to remove.', 'remove-inactive-users' ); ?></p>
 			<?php } ?>
 		</div>
 		<?php
@@ -418,7 +481,7 @@ class Main {
 			?>
 			<form method="post" action="<?php echo esc_url( $post_url ); ?>">
 				<?php
-				//settings_fields( 'remove-inactive-users-config' );
+				// settings_fields( 'remove-inactive-users-config' );
 				wp_nonce_field( 'remove-inactive-users-' . JM_REMOVE_INACTIVE_USERS_VERSION, 'remove_inactive_users[_nonce]' );
 				?>
 				<table class="form-table" role="presentation">
@@ -458,6 +521,18 @@ class Main {
 							?>
 							/>
 							<label for="remove-inactive-users--auto_remove"><?php esc_html_e( 'Enable daily automatic removal of inactive users.', 'remove-inactive-users' ); ?></label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Remove Roleless', 'remove-inactive-users' ); ?></th>
+						<td>
+							<input type="checkbox" id="remove-inactive-users--remove_roleless" name="remove_inactive_users[remove_roleless]" value="1"
+							<?php
+							checked( $this->options['remove_roleless'] );
+							echo isset( $override['remove_roleless'] ) ? ' disabled' : '';
+							?>
+							/>
+							<label for="remove-inactive-users--remove_roleless"><?php esc_html_e( 'Remove users with no assigned role.', 'remove-inactive-users' ); ?></label>
 						</td>
 					</tr>
 				</table>
@@ -543,6 +618,47 @@ class Main {
 						<td><?php echo esc_html( $key + 1 ); ?></td>
 						<td><a href="<?php echo esc_url( get_edit_user_link( $inactive_id ) ); ?>"><?php echo esc_html( get_the_author_meta( 'display_name', $inactive_id ) ); ?></a></td>
 						<td><?php echo esc_html( wp_date( 'Y-m-d h:ia', $last_login ) ); ?></td>
+					</tr>
+				<?php } ?>
+			</tbody>
+		</table>
+		<?php
+	}
+
+
+	/**
+	 * Generate the roleless users table
+	 *
+	 * @return void
+	 *
+	 * @see https://developer.wordpress.org/reference/functions/get_edit_user_link/
+	 */
+	private function roleless_users_table() {
+		// Only generate a table if roleless users exist.
+		if ( empty( $this->roleless ) ) {
+			return;
+		}
+		?>
+		<table class="wp-list-table widefat striped table-view-list">
+			<thead>
+				<tr>
+					<th>#</th>
+					<th><?php esc_html_e( 'Name', 'remove-inactive-users' ); ?></th>
+					<th><?php esc_html_e( 'Email', 'remove-inactive-users' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php
+				foreach ( $this->roleless as $key => $user_id ) {
+					$user = get_userdata( $user_id );
+					if ( ! $user ) {
+						continue;
+					}
+					?>
+					<tr>
+						<td><?php echo esc_html( $key + 1 ); ?></td>
+						<td><a href="<?php echo esc_url( get_edit_user_link( $user_id ) ); ?>"><?php echo esc_html( $user->display_name ); ?></a></td>
+						<td><?php echo esc_html( $user->user_email ); ?></td>
 					</tr>
 				<?php } ?>
 			</tbody>
