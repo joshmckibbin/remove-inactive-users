@@ -3,7 +3,7 @@ Contributors: Josh Mckibbin
 Tags: users, inactive, cleanup, admin
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.0.3
+Stable tag: 3.0.4
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -29,6 +29,9 @@ Only if you have enabled the 'Auto Remove' option in the settings. If enabled, i
 2. Plugin Settings page.
 
 == Changelog ==
+= 3.0.4 =
+* Fix: Link to settings page in admin area.
+
 = 3.0.3 =
 * Added option to remove users with no assigned role.
 * Improved error handling when removing users.
