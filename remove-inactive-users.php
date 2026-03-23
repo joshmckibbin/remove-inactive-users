@@ -2,11 +2,11 @@
 /**
  * Plugin Name: Remove Inactive Users
  * Description: Removes users that have not logged in for a specified number of days.
- * Version: 3.0.2
+ * Version: 3.0.3
  * Author: Josh Mckibbin
  * Author URI: https://josh.mckibb.in
  * Requires at least: 6.0
- * Requires PHP: 8.0
+ * Requires PHP: 8.2
  * License: MIT
  * License URI: https://opensource.org/licenses/MIT
  *
@@ -16,7 +16,7 @@
 defined( 'ABSPATH' ) || exit;
 
 // Plugin constants.
-define( 'JM_REMOVE_INACTIVE_USERS_VERSION', '3.0.2' );
+define( 'JM_REMOVE_INACTIVE_USERS_VERSION', '3.0.3' );
 define( 'JM_REMOVE_INACTIVE_USERS_PATH', plugin_dir_path( __FILE__ ) );
 define( 'JM_REMOVE_INACTIVE_USERS_URL', plugin_dir_url( __FILE__ ) );
 
