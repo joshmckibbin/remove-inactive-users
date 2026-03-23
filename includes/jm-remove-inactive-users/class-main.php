@@ -232,10 +232,15 @@ class Main {
 			array(
 				'fields'     => 'ID',
 				'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Necessary to identify users with no role.
+					'relation' => 'OR',
 					array(
 						'key'     => $wpdb->prefix . 'capabilities',
 						'value'   => 'a:0:{}',
 						'compare' => '=',
+					),
+					array(
+						'key'     => $wpdb->prefix . 'capabilities',
+						'compare' => 'NOT EXISTS',
 					),
 				),
 			)
