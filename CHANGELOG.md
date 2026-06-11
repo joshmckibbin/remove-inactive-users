@@ -1,3 +1,9 @@
+## [unreleased]
+
+### ⚙️ Miscellaneous Tasks
+
+- Update release workflow, add .gitignore, and create package.json and package-lock.json
+- Exclude package.json and package-lock.json from release package
 ## [3.0.5] - 2026-06-11
 
 ### 🐛 Bug Fixes
