@@ -2,8 +2,8 @@
 Contributors: Josh Mckibbin
 Tags: users, inactive, cleanup, admin
 Requires at least: 6.0
-Tested up to: 6.9
-Stable tag: 3.0.4
+Tested up to: 7.0
+Stable tag: 3.0.5
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -29,6 +29,10 @@ Only if you have enabled the 'Auto Remove' option in the settings. If enabled, i
 2. Plugin Settings page.
 
 == Changelog ==
+
+= 3.0.5 =
+* Fix: Casting of user last login date to integer for accurate comparison.
+
 = 3.0.4 =
 * Fix: Link to settings page in admin area.
 

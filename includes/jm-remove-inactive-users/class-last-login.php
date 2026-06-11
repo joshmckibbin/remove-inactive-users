@@ -82,7 +82,7 @@ class Last_Login {
 	 * @see add_filter()
 	 **/
 	public function add_date_columns( $columns ) {
-		$columns['wp_last_login'] = __( 'Last Login', 'remove-inactive-users' );
+		$columns['wp_last_login']     = __( 'Last Login', 'remove-inactive-users' );
 		$columns['registration_date'] = __( 'Registered', 'remove-inactive-users' );
 		return $columns;
 	}
@@ -108,7 +108,9 @@ class Last_Login {
 
 		if ( 'wp_last_login' === $column_name ) {
 			$last_login = (int) get_user_meta( $user_id, 'wp_last_login', true );
-			if ( 0 === $last_login ) return '&ndash;';
+			if ( 0 === $last_login ) {
+				return '&ndash;';
+			}
 
 			return wp_date( $date_format, $last_login );
 		}
@@ -133,7 +135,7 @@ class Last_Login {
 
 	/**
 	 * Register the registration date column as sortable.
-	 * 
+	 *
 	 * @param array $columns The columns on the manage users screen.
 	 * @return array
 	 * @see add_filter()

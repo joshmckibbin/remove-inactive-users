@@ -175,8 +175,8 @@ class Main {
 		}
 
 		// If the constant is set, override any specified options.
-		if ( defined( 'JM_REMOVE_INACTIVE_USERS_OPTIONS' ) && is_array( JM_REMOVE_INACTIVE_USERS_OPTIONS ) ) {
-			$sanitized_constants = self::sanitize_options( JM_REMOVE_INACTIVE_USERS_OPTIONS );
+		if ( defined( 'JM_REMOVE_INACTIVE_USERS_OPTIONS' ) && is_array( \JM_REMOVE_INACTIVE_USERS_OPTIONS ) ) {
+			$sanitized_constants = self::sanitize_options( \JM_REMOVE_INACTIVE_USERS_OPTIONS );
 			$options             = array_merge( $options, $sanitized_constants );
 		}
 
@@ -468,7 +468,7 @@ class Main {
 		}
 
 		if ( defined( 'JM_REMOVE_INACTIVE_USERS_OPTIONS' ) ) {
-			$override = self::sanitize_options( JM_REMOVE_INACTIVE_USERS_OPTIONS );
+			$override = self::sanitize_options( \JM_REMOVE_INACTIVE_USERS_OPTIONS );
 		}
 		?>
 		<div id="remove-inactive-users-options" class="wrap">
@@ -680,7 +680,7 @@ class Main {
 	public function scripts() {
 		// Only add scripts to the Inactive Users management page.
 		$screen = get_current_screen();
-		if ( $screen && in_array( $screen->id, array( 'users_page_remove-inactive-users', 'users_page_remove-inactive-users-network', true ) ) ) {
+		if ( $screen && in_array( $screen->id, array( 'users_page_remove-inactive-users', 'users_page_remove-inactive-users-network' ), true ) ) {
 			wp_enqueue_script( 'remove-inactive-users', JM_REMOVE_INACTIVE_USERS_URL . 'admin/scripts.js', array(), JM_REMOVE_INACTIVE_USERS_VERSION, true );
 		}
 	}
