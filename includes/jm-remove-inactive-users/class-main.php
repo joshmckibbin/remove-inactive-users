@@ -205,7 +205,7 @@ class Main {
 
 		foreach ( $queried_users as $user_id ) {
 			// Get the user's last login.
-			$user_last_login = get_user_meta( $user_id, 'wp_last_login', true );
+			$user_last_login = (int) get_user_meta( $user_id, 'wp_last_login', true );
 
 			// Get the date to check (x days ago from today's date).
 			$date_to_check = strtotime( wp_sprintf( '%s -%d days', gmdate( 'Y-m-d' ), $this->options['inactive_period'] ) );
