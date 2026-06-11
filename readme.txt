@@ -3,7 +3,7 @@ Contributors: Josh Mckibbin
 Tags: users, inactive, cleanup, admin
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 3.0.5
+Stable tag: 3.0.6
 License: MIT
 License URI: https://opensource.org/licenses/MIT
 
@@ -29,6 +29,9 @@ Only if you have enabled the 'Auto Remove' option in the settings. If enabled, i
 2. Plugin Settings page.
 
 == Changelog ==
+
+= 3.0.6 =
+* Fix: Ensure that notice type is set when displaying schedule notice.
 
 = 3.0.5 =
 * Fix: Casting of user last login date to integer for accurate comparison.

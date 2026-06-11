@@ -381,7 +381,7 @@ class Main {
 				echo '<p>' . esc_html__( 'Additionally, users with no assigned role will also be removed.', 'remove-inactive-users' ) . '</p>';
 			}
 
-			if ( isset( $schedule_notice_msg ) ) {
+			if ( isset( $notice_type, $schedule_notice_msg ) ) {
 				$schedule_notice = wp_sprintf( $schedule_notice_msg, $this->options['inactive_roles'], $plural_suffix );
 				echo '<p class="notice notice-large notice-' . esc_attr( $notice_type ) . '">' . wp_kses_post( $schedule_notice ) . '</p>';
 			}
