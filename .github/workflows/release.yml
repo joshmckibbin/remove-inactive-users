@@ -48,11 +48,12 @@ jobs:
           
           # Copy plugin files (excluding development files)
           rsync -av \
+            --exclude='.editorconfig' \
             --exclude='.git*' \
             --exclude='.git/' \
             --exclude='.github/' \
-            --exclude='.vscode' \
-            --exclude='.editorconfig' \
+            --exclude='.vscode/' \
+            --exclude='node_modules/' \
             --exclude='assets/' \
             --exclude='*.md' \
             --exclude='phpcs.xml' \

@@ -1,0 +1,9 @@
+{
+  "name": "remove-inactive-users",
+  "scripts": {
+    "changelog": "git-cliff -o CHANGELOG.md"
+  },
+  "devDependencies": {
+    "git-cliff": "^2.13.1"
+  }
+}
