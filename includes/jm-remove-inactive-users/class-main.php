@@ -66,13 +66,9 @@ class Main {
 		// Load the Last_Login class.
 		new Last_Login();
 
-		// Retrieve the inactive users and store them in a class property.
-		add_action( 'init', array( $this, 'set_inactive_users' ) );
-
-		// Retrieve roleless users if the option is enabled.
-		if ( ! empty( $this->options['remove_roleless'] ) ) {
-			add_action( 'init', array( $this, 'set_roleless_users' ) );
-		}
+		// The inactive/roleless user lists are only needed on the Inactive Users admin
+		// screen (users_admin_page()) and by the daily cron job (Cron::remove_users()),
+		// so they're loaded there rather than on every request.
 
 		// Load the Cron class.
 		new Cron();
@@ -193,28 +189,29 @@ class Main {
 	 * @see https://developer.wordpress.org/reference/functions/get_user_meta/
 	 */
 	public function set_inactive_users() {
+		// The cutoff: midnight (UTC) x days ago. Users who last logged in on or before it are inactive.
+		$date_to_check = strtotime( wp_sprintf( '%s -%d days', gmdate( 'Y-m-d' ), $this->options['inactive_period'] ) );
 
-		$queried_users = get_users(
-			array(
-				'role__in' => $this->options['inactive_roles'],
-				'meta_key' => 'wp_last_login', // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key -- This query may be slow on large user databases, but is necessary for inactivity checks.
-				'orderby'  => 'meta_value_num',
-				'fields'   => 'ID',
+		// Compare in SQL instead of loading every user's last login and checking it in PHP.
+		$this->inactive = array_map(
+			'intval',
+			get_users(
+				array(
+					'role__in'    => $this->options['inactive_roles'],
+					'meta_query'  => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Necessary for inactivity checks; only runs on the admin screen and the daily cron job.
+						'last_login' => array(
+							'key'     => 'wp_last_login',
+							'value'   => $date_to_check,
+							'compare' => '<=',
+							'type'    => 'NUMERIC',
+						),
+					),
+					'orderby'     => 'last_login',
+					'fields'      => 'ID',
+					'count_total' => false,
+				)
 			)
 		);
-
-		foreach ( $queried_users as $user_id ) {
-			// Get the user's last login.
-			$user_last_login = (int) get_user_meta( $user_id, 'wp_last_login', true );
-
-			// Get the date to check (x days ago from today's date).
-			$date_to_check = strtotime( wp_sprintf( '%s -%d days', gmdate( 'Y-m-d' ), $this->options['inactive_period'] ) );
-
-			// If the user's last login is greater than the date to check, add to the inactive users array.
-			if ( ( $date_to_check - $user_last_login ) >= 0 ) {
-				$this->inactive[] = $user_id;
-			}
-		}
 	}
 
 
@@ -230,8 +227,9 @@ class Main {
 
 		$this->roleless = get_users(
 			array(
-				'fields'     => 'ID',
-				'meta_query' => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Necessary to identify users with no role.
+				'fields'      => 'ID',
+				'count_total' => false,
+				'meta_query'  => array( // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_query -- Necessary to identify users with no role.
 					'relation' => 'OR',
 					array(
 						'key'     => $wpdb->prefix . 'capabilities',
@@ -387,6 +385,12 @@ class Main {
 			}
 
 			echo '<hr class="wp-header-end">';
+
+			// Load the users this screen lists and removes.
+			$this->set_inactive_users();
+			if ( ! empty( $this->options['remove_roleless'] ) ) {
+				$this->set_roleless_users();
+			}
 
 			// Attempt to remove users.
 			$removed_users = $this->remove_users();
