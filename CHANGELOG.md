@@ -1,9 +1,15 @@
-## [unreleased]
+## [3.0.6] - 2026-06-18
+
+### ⚡ Performance
+
+- Load inactive and roleless users only where they're used
 
 ### ⚙️ Miscellaneous Tasks
 
 - Update release workflow, add .gitignore, and create package.json and package-lock.json
 - Exclude package.json and package-lock.json from release package
+- Update changelog for unreleased changes and workflow improvements
+
 ## [3.0.5] - 2026-06-11
 
 ### 🐛 Bug Fixes
